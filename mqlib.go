@@ -42,20 +42,8 @@ type MQReceiver struct {
 
 // NewMQReceiver is called by user to get a reciever handle
 func NewMQReceiver(name, target string) *MQReceiver {
-	var rmqconf RMQConfig
 
-	if target == "dev" {
-		rmqconf = GetDevConfig()
-	} else if target == "prod" {
-		rmqconf = GetProdConfig()
-	} else {
-		return nil
-	}
-
-	return createMQReceiver(name, rmqconf)
-}
-
-func createMQReceiver(name string, mqconf RMQConfig) *MQReceiver {
+	mqconf := GetMQConfig()
 
 	// try to connect
 	connString := fmt.Sprintf("amqp://%s:%s@%s:%s", mqconf.User, mqconf.Pass, mqconf.Host, mqconf.Port)
@@ -74,7 +62,7 @@ func createMQReceiver(name string, mqconf RMQConfig) *MQReceiver {
 	go waitOnConnError(mqr.conn)
 
 	mqr.Name = name
-	mqr.ExchangeName = "rio.action"
+	mqr.ExchangeName = os.Getenv("RABBIT_MQ_EXCH")
 	mqr.ExchangeType = "topic"
 	mqr.ContentType = "application/json"
 	mqr.ContentEncoding = "gzip"
