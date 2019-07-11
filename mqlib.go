@@ -41,9 +41,25 @@ type MQReceiver struct {
 }
 
 // NewMQReceiver is called by user to get a reciever handle
-func NewMQReceiver(name, target string) *MQReceiver {
+func NewMQReceiver(name string) *MQReceiver {
 
-	mqconf := GetMQConfig()
+	c := GetMQConfig()
+	return mqReceiver(name, c)
+}
+
+// NewMQReceiverWithConfig is called by user with RabbitMQ config info to get a reciever handle
+func NewMQReceiverWithConfig(name, host, port, user, pass string) *MQReceiver {
+	mqconf := RMQConfig{
+		Host:     host,
+		Port:     port,
+		User:     user,
+		Pass:     pass,
+		Prefetch: 20,
+	}
+	return mqReceiver(name, mqconf)
+}
+
+func mqReceiver(name string, mqconf RMQConfig) *MQReceiver {
 
 	// try to connect
 	connString := fmt.Sprintf("amqp://%s:%s@%s:%s", mqconf.User, mqconf.Pass, mqconf.Host, mqconf.Port)

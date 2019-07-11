@@ -1,5 +1,7 @@
 package mqwrap
 
+import "os"
+
 // RMQConfig struct has configuration to connect to Rabbit MQ
 type RMQConfig struct {
 	Host     string `mapstructure:"host"`
