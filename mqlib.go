@@ -157,6 +157,14 @@ func (mq *MQReceiver) AddHandler(queueName string, routingKeys []string, autoDel
 	return nil
 }
 
+
+func (mq *MQReceiver) AddRouting(n, rk string) error {
+	return nil
+}
+func (mq *MQReceiver) RemRouting(n, rk string) error {
+	return nil
+}
+
 //Reply should send back a reply, but only writes the reply
 func (mq *MQReceiver) Reply(message interface{}, d amqp.Delivery) error {
 	log.Warnf("Reply: %+v", message)
