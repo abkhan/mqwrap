@@ -12,7 +12,7 @@ import (
 type consumer struct {
 	RoutingKeys     []string
 	QueueName       string
-	mqconn          *MQReceiver
+	mqconn          *MQWrap
 	exclusiveQueue  bool
 	autoDeleteQueue bool
 }
@@ -111,7 +111,7 @@ func (c *consumer) consume(mg MessageGenerator) (chan MessageDelivery, error) {
 					message         interface{}
 					decompressed    []byte
 					messageDelivery = MessageDelivery{
-					//Context: NewContext(c.mqconn),
+						//Context: NewContext(c.mqconn),
 					}
 				)
 

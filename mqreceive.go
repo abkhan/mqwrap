@@ -22,33 +22,15 @@ type MessageDelivery struct {
 type MessageGenerator func() interface{}
 type MessageHandler func(MessageDelivery) (interface{}, error)
 
-// MQReceiver is receiver struct for RabbitMQ messages
-type MQReceiver struct {
-	ExchangeType    string
-	ContentType     string
-	ContentEncoding string
-	rpcQueueName    string
-	Name            string
-	ExchangeName    string
-	consumer        *consumer
-	consumerMutex   sync.Mutex
-	//rpcQueue        *RPCQueue
-	conn      *amqp.Connection
-	ErrorChan chan amqp.Return
-	wg        *sync.WaitGroup
-	sem       *Semaphore
-	Prefetch  int
-}
-
 // NewMQReceiver is called by user to get a reciever handle
-func NewMQReceiver(name string) *MQReceiver {
+func NewMQReceiver(name string) *MQWrap {
 
 	c := GetMQConfig()
 	return mqReceiver(name, c)
 }
 
 // NewMQReceiverWithConfig is called by user with RabbitMQ config info to get a reciever handle
-func NewMQReceiverWithConfig(name, host, port, user, pass string) *MQReceiver {
+func NewMQReceiverWithConfig(name, host, port, user, pass string) *MQWrap {
 	mqconf := RMQConfig{
 		Host:     host,
 		Port:     port,
@@ -59,7 +41,7 @@ func NewMQReceiverWithConfig(name, host, port, user, pass string) *MQReceiver {
 	return mqReceiver(name, mqconf)
 }
 
-func mqReceiver(name string, mqconf RMQConfig) *MQReceiver {
+func mqReceiver(name string, mqconf RMQConfig) *MQWrap {
 
 	// try to connect
 	connString := fmt.Sprintf("amqp://%s:%s@%s:%s", mqconf.User, mqconf.Pass, mqconf.Host, mqconf.Port)
@@ -70,7 +52,7 @@ func mqReceiver(name string, mqconf RMQConfig) *MQReceiver {
 		Heartbeat: 20 * time.Second,
 	}
 
-	mqr := MQReceiver{}
+	mqr := MQWrap{}
 	var err error
 	if mqr.conn, err = amqp.DialConfig(connString, config); err != nil {
 		log.Fatalf("Can't connect to RabbitMQ")
@@ -82,7 +64,6 @@ func mqReceiver(name string, mqconf RMQConfig) *MQReceiver {
 	mqr.ExchangeType = "topic"
 	mqr.ContentType = "application/json"
 	mqr.ContentEncoding = "gzip"
-	//mqr.rpcQueue = NewRPCQueue()
 	mqr.ErrorChan = make(chan amqp.Return)
 	mqr.wg = &sync.WaitGroup{}
 	mqr.sem = NewSemaphore(256)
@@ -107,7 +88,7 @@ func waitOnConnError(c *amqp.Connection) {
 }
 
 // AddHandler on the MQReciever adds a handle function that calls it when it receives a message
-func (mq *MQReceiver) AddHandler(queueName string, routingKeys []string, autoDelete bool, mg MessageGenerator, mh MessageHandler) error {
+func (mq *MQWrap) AddHandler(queueName string, routingKeys []string, autoDelete bool, mg MessageGenerator, mh MessageHandler) error {
 	if mq.consumer != nil {
 		return errors.New("Consumer exists")
 	}
@@ -157,22 +138,21 @@ func (mq *MQReceiver) AddHandler(queueName string, routingKeys []string, autoDel
 	return nil
 }
 
-
-func (mq *MQReceiver) AddRouting(n, rk string) error {
+func (mq *MQWrap) AddRouting(n, rk string) error {
 	return nil
 }
-func (mq *MQReceiver) RemRouting(n, rk string) error {
+func (mq *MQWrap) RemRouting(n, rk string) error {
 	return nil
 }
 
 //Reply should send back a reply, but only writes the reply
-func (mq *MQReceiver) Reply(message interface{}, d amqp.Delivery) error {
+func (mq *MQWrap) Reply(message interface{}, d amqp.Delivery) error {
 	log.Warnf("Reply: %+v", message)
 	return nil
 }
 
 //ReplyError Returns the error messages to the RPCClient if request was unsuccessful
-func (mq *MQReceiver) ReplyError(emess string, code int, err error, d amqp.Delivery) error {
+func (mq *MQWrap) ReplyError(emess string, code int, err error, d amqp.Delivery) error {
 	log.Errorf("ReplyError: %s, Err: %v", emess, err)
 	return nil
 }
