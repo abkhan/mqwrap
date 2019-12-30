@@ -53,13 +53,14 @@ func rabbitConnect(name string, mqconf RMQConfig) *MQWrap {
 	mqr := MQWrap{}
 	var err error
 	if mqr.conn, err = amqp.DialConfig(connString, config); err != nil {
-		log.Fatalf("Can't connect to RabbitMQ")
+		log.Errorf("RabbitMQ dial error. Connection String [%s]", connString)
+		log.Fatal("Can't connect to RabbitMQ. Quitting.")
 	}
 	go waitOnConnError(mqr.conn)
 
 	mqr.channel, err = mqr.conn.Channel()
 	if err != nil {
-		log.Fatalf("Can't connect to RabbitMQ")
+		log.Fatalf("RabbitMQ channel create error, quitting ...")
 	}
 
 	if err = mqr.channel.ExchangeDeclare(
