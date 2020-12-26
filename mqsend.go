@@ -11,11 +11,16 @@ import (
 	"github.com/streadway/amqp"
 )
 
-// NewMQSender is called by user to get a reciever handle
-func NewMQSender(name string) *MQWrap {
+var useExchange = mqExchName
 
+// NewMQSender is called by user to get a reciever handle
+func NewMQSender(name, xch string) *MQWrap {
+
+	if xch != "" {
+		useExchange = xch
+	}
 	c := GetMQConfig()
-	return rabbitConnect("Sender", c)
+	return rabbitConnect(name, c)
 }
 
 // SendToRabbit handles the message send to rabbit as well as the retry logic with backoff
@@ -68,7 +73,7 @@ func rabbitConnect(name string, mqconf RMQConfig) *MQWrap {
 	}
 
 	if err = mqr.channel.ExchangeDeclare(
-		mqExchName,
+		useExchange,
 		"topic",
 		true,
 		false,
