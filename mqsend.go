@@ -19,15 +19,19 @@ func NewMQSender(name string) *MQWrap {
 }
 
 // SendToRabbit handles the message send to rabbit as well as the retry logic with backoff
-func (mq *MQWrap) SendToRabbit(msg interface{}, rk, xch string) error {
+func (mq *MQWrap) SendToRabbit(msg interface{}, rk, xch, retRK string) error {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
 	pub := amqp.Publishing{Body: body}
+	if retRK != "" {
+		pub.ReplyTo = retRK
+	}
 	if mq != nil {
 		if mq.channel != nil {
+			log.Infof("SendToRabbit: Body: %s", string(body))
 			return mq.channel.Publish(xch, rk, false, false, pub)
 		} else {
 			log.Error("!!! mq.channel is nil")
