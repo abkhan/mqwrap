@@ -157,12 +157,24 @@ func (mq *MQWrap) Reply(msg interface{}, d amqp.Delivery) error {
 
 	pub := amqp.Publishing{Body: body}
 	if d.ReplyTo != "" {
-		if mq.channel != nil {
-			log.Infof("Reply: Body: %s", string(body))
-			return mq.channel.Publish(mq.ExchangeName, d.ReplyTo, false, false, pub)
-		} else {
-			log.Error("!!! mq.channel is nil")
+		if mq.channel == nil {
+			var channel *amqp.Channel
+			var err error
+			if mq.consumer.mqconn.conn != nil {
+				channel, err = mq.consumer.mqconn.conn.Channel()
+				if err != nil {
+					log.Errorf("reply:Creating channel error: %+v", err)
+					return errors.New("channel creation erro")
+
+				}
+			} else {
+				log.Error("reply:Creating channel error: connection is nil")
+				return errors.New("conn erro")
+			}
+			mq.channel = channel
 		}
+		log.Infof("Reply: Body: %s", string(body))
+		return mq.channel.Publish(mq.ExchangeName, d.ReplyTo, false, false, pub)
 	}
 
 	return errors.New("no reply sent")
