@@ -1,6 +1,7 @@
 package mqwrap
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -147,9 +148,24 @@ func (mq *MQWrap) RemRouting(n, rk string) error {
 }
 
 //Reply should send back a reply, but only writes the reply
-func (mq *MQWrap) Reply(message interface{}, d amqp.Delivery) error {
-	log.Warnf("Reply: %+v", message)
-	return nil
+func (mq *MQWrap) Reply(msg interface{}, d amqp.Delivery) error {
+	body, err := json.Marshal(msg)
+	if err != nil {
+		log.Warnf("Reply: error: %+v", err)
+		return err
+	}
+
+	pub := amqp.Publishing{Body: body}
+	if d.ReplyTo != "" {
+		if mq.channel != nil {
+			log.Infof("Reply: Body: %s", string(body))
+			return mq.channel.Publish(mq.ExchangeName, d.ReplyTo, false, false, pub)
+		} else {
+			log.Error("!!! mq.channel is nil")
+		}
+	}
+
+	return errors.New("no reply sent")
 }
 
 //ReplyError Returns the error messages to the RPCClient if request was unsuccessful
